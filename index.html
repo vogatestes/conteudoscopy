@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Studio de Conteúdo · Instagram</title>
+<style>
+  :root{
+    --bg:#101012; --bg2:#17171a; --card:#1c1c20; --line:#2a2a2f;
+    --text:#f3f1ec; --muted:#a6a3a0; --accent:#d9b26a; --accent2:#f1f5f4;
+    --good:#3f8f6c; --bad:#b25454; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Iowan Old Style","Georgia",serif;}
+  h1,h2,h3{font-family:"Iowan Old Style","Georgia",serif; font-weight:600; letter-spacing:.2px;}
+  p,input,textarea,select,button,label,span,li{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  button{cursor:pointer;font-family:inherit}
+  ::selection{background:var(--accent);color:#111}
+
+  /* ---------- setup overlay ---------- */
+  #setup{position:fixed;inset:0;background:radial-gradient(120% 120% at 20% 0%, #1c1a17 0%, #0c0c0d 60%);
+    display:flex;align-items:center;justify-content:center;z-index:50;padding:24px}
+  .setup-card{max-width:560px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:36px 32px}
+  .setup-card h2{font-size:1.6rem;margin:0 0 6px}
+  .setup-card p.lead{color:var(--muted);margin:0 0 26px;font-size:.95rem;line-height:1.5}
+  .setup-card label{display:block;font-size:.8rem;color:var(--muted);margin:18px 0 6px;text-transform:none}
+  .setup-card input[type=text]{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);
+    background:#0f0f11;color:var(--text);font-size:1rem}
+  .setup-card input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .swatch{width:52px;height:52px;border-radius:12px;cursor:pointer;border:2px solid transparent;display:flex}
+  .swatch.sel{border-color:var(--accent2)}
+  .swatch i{flex:1}
+  .setup-actions{margin-top:28px;display:flex;align-items:center;gap:14px}
+  #setupBtn{background:var(--accent);color:#1a1305;border:none;padding:13px 22px;border-radius:10px;font-weight:600;font-size:.95rem}
+  #setupBtn:disabled{opacity:.5;cursor:default}
+  #setupStatus{font-size:.85rem;color:var(--muted)}
+  .examples{margin-top:10px;font-size:.8rem;color:var(--muted)}
+  .examples b{color:var(--text);cursor:pointer;border-bottom:1px dotted var(--muted)}
+
+  /* ---------- shell ---------- */
+  #app{display:none}
+  header.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(16,16,18,.92);backdrop-filter:blur(6px);z-index:10}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:40px;height:40px;border-radius:10px;background:var(--accent);color:#1a1305;display:flex;
+    align-items:center;justify-content:center;font-weight:700;font-family:sans-serif}
+  .brand h1{font-size:1.05rem;margin:0}
+  .brand .sub{margin:0;color:var(--muted);font-size:.8rem}
+  .theme-btn,.change-niche{background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 12px;font-size:.85rem}
+
+  nav.tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;border-bottom:1px solid var(--line);
+    position:sticky;top:73px;background:var(--bg);z-index:9}
+  .tab{background:none;border:1px solid transparent;color:var(--muted);padding:8px 14px;border-radius:20px;
+    white-space:nowrap;font-size:.87rem}
+  .tab.active{background:var(--card);border-color:var(--line);color:var(--text)}
+
+  main{max-width:980px;margin:0 auto;padding:26px 18px 70px}
+  .panel{display:none}
+  .panel.active{display:block}
+  .hero{margin-bottom:20px}
+  .pill{display:inline-block;background:var(--card);border:1px solid var(--line);color:var(--accent);
+    font-size:.75rem;padding:5px 12px;border-radius:20px;margin-bottom:10px}
+  .hero h2{font-size:1.4rem;margin:0 0 8px}
+  .hero p{color:var(--muted);line-height:1.55;font-size:.93rem;max-width:640px}
+  .muted-tag{color:var(--muted);font-weight:400;font-size:.85rem}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px}
+  .card h3{margin:0 0 8px;font-size:1rem}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+  .stat .big{font-size:1.5rem;margin:2px 0;color:var(--accent)}
+  .card ul{margin:0;padding-left:18px;color:var(--muted);font-size:.9rem;line-height:1.7}
+  .card.good{border-color:rgba(63,143,108,.4)} .card.bad{border-color:rgba(178,84,84,.4)}
+
+  .flow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .flow span{background:var(--bg2);border:1px solid var(--line);padding:8px 12px;border-radius:20px;font-size:.82rem;color:var(--muted)}
+  .bars{display:flex;flex-direction:column;gap:10px}
+  .bar-row{display:flex;align-items:center;gap:10px;font-size:.85rem}
+  .bar-row .lab{width:130px;flex-shrink:0;color:var(--muted)}
+  .bar-track{flex:1;background:var(--bg2);border-radius:8px;height:10px;overflow:hidden}
+  .bar-fill{height:100%;background:var(--accent)}
+  .bar-pct{width:38px;text-align:right;color:var(--accent)}
+
+  .post-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+  .post-card .cat{display:inline-block;font-size:.72rem;color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:20px;margin-bottom:8px}
+  .post-card h4{margin:0 0 6px;font-size:1.02rem}
+  .post-card p{margin:0 0 10px;color:var(--muted);font-size:.88rem;line-height:1.5;white-space:pre-wrap}
+  .post-card .row{display:flex;gap:8px;flex-wrap:wrap}
+  .mini-btn{background:var(--bg2);border:1px solid var(--line);color:var(--text);padding:7px 12px;border-radius:8px;font-size:.8rem}
+  .mini-btn.primary{background:var(--accent);color:#1a1305;border:none;font-weight:600}
+
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{background:var(--bg2);border:1px solid var(--line);color:var(--muted);padding:7px 13px;border-radius:20px;font-size:.83rem}
+  .chip.active{background:var(--accent);color:#1a1305;border-color:var(--accent);font-weight:600}
+  .roteiros-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:680px){.roteiros-grid{grid-template-columns:1fr}}
+
+  .gen-layout,.art-layout{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:820px){.gen-layout,.art-layout{grid-template-columns:1fr}}
+  .lbl{display:block;font-size:.78rem;color:var(--muted);margin:14px 0 6px}
+  .chip-row{display:flex;flex-wrap:wrap;gap:8px}
+  .select,.fld{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:#0f0f11;color:var(--text);font-size:.92rem}
+  textarea.fld{min-height:60px;resize:vertical}
+  .hint{color:var(--muted);font-size:.78rem;margin-top:8px;line-height:1.5}
+  .primary-btn{background:var(--accent);color:#1a1305;border:none;padding:12px 18px;border-radius:9px;font-weight:600;margin-top:16px;width:100%}
+  .secondary-btn{background:none;border:1px solid var(--accent);color:var(--accent);padding:11px 16px;border-radius:9px;font-weight:600;width:100%;margin-top:10px}
+  .ghost-btn{background:none;border:1px solid var(--line);color:var(--text);padding:6px 11px;border-radius:8px;font-size:.8rem}
+  .output-head{display:flex;justify-content:space-between;align-items:center}
+  .output{width:100%;min-height:220px;background:#0f0f11;border:1px solid var(--line);border-radius:9px;color:var(--text);
+    padding:14px;font-size:.92rem;line-height:1.6;resize:vertical}
+  .counter{color:var(--muted);font-size:.78rem;margin-right:8px}
+
+  .art-palette{display:flex;gap:8px;margin-top:10px}
+  .art-palette i{width:26px;height:26px;border-radius:6px;display:block;border:1px solid var(--line)}
+  .cond-fields{display:none}
+  .cond-fields.show{display:block}
+  input.file{padding:8px}
+  .canvas-wrap{background:#000;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  #artCanvas{width:100%;height:auto;display:block}
+  .art-actions{display:flex;gap:10px;margin-top:16px}
+  .art-actions button{margin-top:0}
+
+  #calendar{display:flex;flex-direction:column;gap:22px}
+  .cal-week h4{margin:0 0 10px;font-size:.95rem;color:var(--muted)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  @media(max-width:680px){.cal-grid{grid-template-columns:repeat(2,1fr)}}
+  .cal-day{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;min-height:96px;font-size:.78rem;cursor:pointer}
+  .cal-day.empty{opacity:.3;cursor:default}
+  .cal-day .dname{color:var(--muted);font-size:.7rem;margin-bottom:6px;display:block}
+  .cal-day .cat{color:var(--accent);font-size:.68rem;display:block;margin-bottom:4px}
+  .cal-day .ttl{font-size:.78rem;line-height:1.3}
+  .cal-day:hover{border-color:var(--accent)}
+
+  footer{text-align:center;color:var(--muted);font-size:.78rem;padding:26px;border-top:1px solid var(--line)}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent);
+    color:#1a1305;padding:10px 18px;border-radius:20px;font-size:.85rem;font-weight:600;opacity:0;
+    transition:all .25s;pointer-events:none;z-index:99}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP ============ -->
+<div id="setup">
+  <div class="setup-card">
+    <h2>Studio de Conteúdo</h2>
+    <p class="lead">Um sistema de criação de conteúdo para Instagram (tendências, roteiros, gerador de legendas, criador de arte, calendário e estratégia) — mas para o <strong>seu</strong> nicho, não um fixo. Diga qual é o seu negócio.</p>
+
+    <label for="setNiche">Qual é o seu nicho / tipo de negócio?</label>
+    <input id="setNiche" type="text" placeholder="Ex.: nail designer, personal trainer, confeitaria, clínica odontológica..." />
+    <p class="examples">Ideias: <b data-v="nail designer">nail designer</b> · <b data-v="personal trainer">personal trainer</b> · <b data-v="confeitaria artesanal">confeitaria</b> · <b data-v="barbearia">barbearia</b> · <b data-v="clínica de estética">clínica de estética</b> · <b data-v="fotografia de casamentos">fotógrafo(a)</b></p>
+
+    <label for="setBrand">Nome do negócio (opcional)</label>
+    <input id="setBrand" type="text" placeholder="Ex.: Studio Bella Nails" />
+
+    <label>Paleta de cores</label>
+    <div class="swatches" id="paletteSwatches"></div>
+
+    <div class="setup-actions">
+      <button id="setupBtn">Gerar meu Studio ✨</button>
+      <span id="setupStatus"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+<header class="topbar">
+  <div class="brand">
+    <div class="logo" id="logoInit">NM</div>
+    <div>
+      <h1 id="brandName">Studio de Conteúdo</h1>
+      <p class="sub" id="brandSub">Instagram</p>
+    </div>
+  </div>
+  <button class="change-niche" id="changeNicheBtn">Trocar nicho</button>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="hoje">🌅 Hoje</button>
+  <button class="tab" data-tab="radar">📡 Tendências</button>
+  <button class="tab" data-tab="produtos">📚 Guia</button>
+  <button class="tab" data-tab="motiva">💬 Frases</button>
+  <button class="tab" data-tab="roteiros">🔥 Roteiros</button>
+  <button class="tab" data-tab="gerador">✍️ Gerador</button>
+  <button class="tab" data-tab="arte">🎨 Arte</button>
+  <button class="tab" data-tab="estrategia">📈 Estratégia</button>
+  <button class="tab" data-tab="calendario">🗓️ Calendário</button>
+</nav>
+
+<main>
+  <section id="hoje" class="panel active">
+    <div class="hero">
+      <span class="pill">Prontos pra postar</span>
+      <h2>Seus posts de hoje</h2>
+      <p>Posts prontos pra publicar no feed. Copie a legenda, clique em <strong>Criar arte</strong> e poste.</p>
+    </div>
+    <div id="hojeList"></div>
+  </section>
+
+  <section id="radar" class="panel">
+    <div class="hero">
+      <h2>📡 Tendências & Novidades</h2>
+      <p>O que está em alta no seu nicho agora. Use pra mostrar que você está por dentro.</p>
+    </div>
+    <div id="radarList"></div>
+  </section>
+
+  <section id="produtos" class="panel">
+    <div class="hero">
+      <h2>📚 Guia</h2>
+      <p>Conteúdo educativo que nunca vence: técnicas, cuidados e boas práticas do seu nicho.</p>
+    </div>
+    <div id="produtosList"></div>
+  </section>
+
+  <section id="motiva" class="panel">
+    <div class="hero">
+      <h2>💬 Frases e citações</h2>
+      <p>Frases do seu nicho, prontas para os modelos de arte "Frase" e "Cofre".</p>
+    </div>
+    <div id="motivaList"></div>
+  </section>
+
+  <section id="roteiros" class="panel">
+    <div class="hero">
+      <h2>🔥 Roteiros virais</h2>
+      <p>Formatos comprovados adaptados ao seu nicho. Filtre por categoria e use como molde.</p>
+    </div>
+    <div class="filters" id="catFilters"></div>
+    <div class="roteiros-grid" id="roteirosGrid"></div>
+  </section>
+
+  <section id="gerador" class="panel">
+    <div class="hero">
+      <h2>✍️ Gerador de post</h2>
+      <p>Categoria → roteiro → edite → copie. Depois clique em <strong>Criar arte</strong>.</p>
+    </div>
+    <div class="gen-layout">
+      <div class="card gen-form">
+        <label class="lbl">1. Categoria</label>
+        <div class="chip-row" id="genCats"></div>
+        <label class="lbl">2. Roteiro viral</label>
+        <select id="genRoteiro" class="select"></select>
+        <p class="hint" id="roteiroHint"></p>
+        <button id="genBtn" class="primary-btn">Gerar post ✨</button>
+      </div>
+      <div class="card gen-output">
+        <div class="output-head">
+          <label class="lbl">Seu post</label>
+          <div><span class="counter" id="charCount">0 caract.</span><button id="copyBtn" class="ghost-btn">📋 Copiar</button></div>
+        </div>
+        <textarea id="genOutput" class="output" placeholder="Sua legenda aparece aqui..." spellcheck="false"></textarea>
+        <button id="toArtBtn" class="secondary-btn">🎨 Criar arte deste post →</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="arte" class="panel">
+    <div class="hero">
+      <h2>🎨 Criador de arte</h2>
+      <p>Gera a imagem do post pronta pra baixar, na sua paleta.</p>
+      <div class="art-palette" id="artPaletteView"></div>
+    </div>
+    <div class="art-layout">
+      <div class="card">
+        <label class="lbl">1. Modelo</label>
+        <div class="chip-row" id="artTemplates"></div>
+
+        <label class="lbl">Etiqueta (tag pequena)</label>
+        <input id="artTag" class="fld" placeholder="Ex.: Antes e depois" />
+        <label class="lbl">Título / gancho</label>
+        <textarea id="artTitle" class="fld" placeholder="Digite o título..."></textarea>
+        <label class="lbl">Linha de apoio (opcional)</label>
+        <textarea id="artSub" class="fld" placeholder="Ex.: uma frase de apoio"></textarea>
+
+        <div id="numeroFields" class="cond-fields">
+          <label class="lbl">Número em destaque</label>
+          <input id="artNum" class="fld" placeholder="4" />
+        </div>
+        <div id="dadosFields" class="cond-fields">
+          <label class="lbl">Linha de dados 1 (rótulo | valor)</label>
+          <input id="artData1" class="fld" placeholder="Duração | 60 min" />
+          <label class="lbl">Linha de dados 2 (rótulo | valor)</label>
+          <input id="artData2" class="fld" placeholder="Resultado | garantido" />
+        </div>
+        <div id="fraseFields" class="cond-fields">
+          <label class="lbl">Autor (opcional)</label>
+          <input id="artAutor" class="fld" placeholder="Ex.: nome do negócio" />
+        </div>
+        <div id="fotoFields" class="cond-fields">
+          <label class="lbl">Foto</label>
+          <input id="artFoto" type="file" accept="image/*" class="fld file" />
+          <p class="hint">Uma foto real de boa qualidade funciona melhor.</p>
+        </div>
+        <div id="tweetFields" class="cond-fields">
+          <label class="lbl">@usuário</label>
+          <input id="artHandle" class="fld" placeholder="@seu_negocio" />
+          <label class="lbl">Avatar (opcional)</label>
+          <input id="artAvatar" type="file" accept="image/*" class="fld file" />
+        </div>
+
+        <label class="lbl">Formato</label>
+        <div class="chip-row" id="artFormats"></div>
+        <div class="art-actions">
+          <button id="artRender" class="primary-btn">Atualizar arte 🔄</button>
+          <button id="artDownload" class="secondary-btn">⬇️ Baixar PNG</button>
+        </div>
+      </div>
+      <div class="card art-preview-card">
+        <label class="lbl">Prévia</label>
+        <div class="canvas-wrap"><canvas id="artCanvas" width="1080" height="1350"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="estrategia" class="panel">
+    <div class="hero">
+      <span class="pill">Objetivo: CRESCER + CONVERTER ✨</span>
+      <h2>Como o sistema funciona</h2>
+      <p>Fluxo: escolha um post pronto (Hoje, Tendências, Guia ou Frases), clique em Criar arte, copie e poste.</p>
+    </div>
+    <div class="flow" id="flow"></div>
+    <div class="grid">
+      <div class="card stat"><h3>Frequência</h3><p class="big">4–6</p><p>posts + stories na semana</p></div>
+      <div class="card stat"><h3>Horários</h3><p class="big">12h · 19h · 21h</p><p>picos comuns de engajamento</p></div>
+      <div class="card stat"><h3>Métrica-rei</h3><p class="big">🔖 + 📩</p><p>salvamentos e directs &gt; curtidas</p></div>
+    </div>
+    <div class="card"><h3>Proporção semanal de categorias</h3><div class="bars" id="propBars"></div></div>
+    <div class="grid2">
+      <div class="card good"><h3>✅ Regras de ouro</h3><ul id="regrasFazer"></ul></div>
+      <div class="card bad"><h3>❌ O que evitar</h3><ul id="regrasEvitar"></ul></div>
+    </div>
+  </section>
+
+  <section id="calendario" class="panel">
+    <div class="hero">
+      <h2>🗓️ Calendário editorial — 4 semanas</h2>
+      <p>5 posts por semana respeitando a proporção das categorias. Clique num dia para abrir o gerador.</p>
+    </div>
+    <div id="calendar"></div>
+  </section>
+</main>
+
+<footer><p id="footerText">Studio de Conteúdo · Instagram · 100% local, sem coleta de dados.</p></footer>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ================= PALETTES ================= */
+const PALETTES = [
+  {name:"Dourado & Preto", bg:"#0e0e10", card:"#1c1c20", accent:"#d9b26a", text:"#f6f1e7"},
+  {name:"Verde Oliva & Areia", bg:"#20241c", card:"#2a2f24", accent:"#c9a46b", text:"#f4efe6"},
+  {name:"Azul Petróleo & Coral", bg:"#0c2229", card:"#123039", accent:"#ff6b5b", text:"#eef7f5"},
+  {name:"Rosa Queimado & Grafite", bg:"#241016", card:"#301820", accent:"#e2a0a6", text:"#f7ede9"},
+  {name:"Roxo Profundo & Dourado", bg:"#1b1030", card:"#241640", accent:"#c9a66b", text:"#f3eef8"},
+  {name:"Grafite & Verde-menta", bg:"#141516", card:"#1e2020", accent:"#7fd6a8", text:"#eef3f0"},
+];
+
+let STATE = {
+  niche:"", brand:"", palette:PALETTES[0],
+  content:null, // filled by API
+  genFilterCat:null, genSelectedRoteiro:null,
+  artTemplate:"tag-titulo", artFormat:"4:5",
+  artFotoImg:null, artAvatarImg:null,
+};
+
+/* ================= SETUP SCREEN ================= */
+const paletteWrap = document.getElementById('paletteSwatches');
+PALETTES.forEach((p,i)=>{
+  const el = document.createElement('div');
+  el.className='swatch'+(i===0?' sel':'');
+  el.style.background = `linear-gradient(135deg, ${p.bg} 50%, ${p.accent} 50%)`;
+  el.title = p.name;
+  el.dataset.i = i;
+  el.onclick = ()=>{
+    document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));
+    el.classList.add('sel');
+    STATE.palette = PALETTES[i];
+  };
+  paletteWrap.appendChild(el);
+});
+document.querySelectorAll('.examples b').forEach(b=>{
+  b.onclick = ()=>{ document.getElementById('setNiche').value = b.dataset.v; };
+});
+
+document.getElementById('setupBtn').onclick = async ()=>{
+  const niche = document.getElementById('setNiche').value.trim();
+  const brand = document.getElementById('setBrand').value.trim();
+  if(!niche){ toast('Digite o seu nicho primeiro'); return; }
+  STATE.niche = niche; STATE.brand = brand || niche;
+  const btn = document.getElementById('setupBtn'); const status = document.getElementById('setupStatus');
+  btn.disabled = true; btn.textContent = 'Gerando...';
+  status.textContent = 'Criando conteúdo para "'+niche+'"...';
+  try{
+    const content = await generateContent(niche, brand);
+    STATE.content = content;
+    launchApp();
+  }catch(e){
+    console.error(e);
+    status.innerHTML = '⚠️ Não consegui gerar conteúdo personalizado.<br><span style="color:#e2a0a6">'+e.message+'</span><br>Clique em "Tentar de novo" ou use o conteúdo básico abaixo.';
+    btn.disabled = false; btn.textContent = 'Tentar de novo ✨';
+    let fb = document.getElementById('useBasicBtn');
+    if(!fb){
+      fb = document.createElement('button');
+      fb.id = 'useBasicBtn';
+      fb.textContent = 'Usar conteúdo básico mesmo assim';
+      fb.className = 'change-niche';
+      fb.style.marginLeft = '10px';
+      document.querySelector('.setup-actions').appendChild(fb);
+    }
+    fb.onclick = ()=>{
+      STATE.content = fallbackContent(niche, brand);
+      launchApp();
+    };
+    return; // stay on setup screen, do NOT auto-launch
+  }
+};
+
+/* ================= AI CONTENT GENERATION ================= */
+async function generateContent(niche, brand){
+  const sys = `Você é um estrategista de conteúdo para Instagram, especializado no nicho: "${niche}". Responda APENAS com um objeto JSON válido, sem markdown, sem crases, sem texto antes ou depois. Use português do Brasil, tom próximo e humano, nada genérico. Estrutura exata:
+{
+ "categorias":["Educativo","Bastidores","Prova social","Promocional","Engajamento"],
+ "proporcao":[{"categoria":"Educativo","pct":30},{"categoria":"Bastidores","pct":20},{"categoria":"Prova social","pct":25},{"categoria":"Promocional","pct":15},{"categoria":"Engajamento","pct":10}],
+ "tendencias":[{"titulo":"","resumo":"","legenda":""}],
+ "guia":[{"titulo":"","resumo":"","legenda":""}],
+ "frases":[{"texto":"","autor":""}],
+ "roteiros":[{"categoria":"","titulo":"","estrutura":"","exemplo":""}],
+ "hoje":[{"titulo":"","legenda":"","categoria":""}],
+ "regras":{"fazer":["",""],"evitar":["",""]}
+}
+Regras de conteúdo: "tendencias" deve ter 5 itens (novidades/tecnicas em alta no nicho); "guia" deve ter 5 itens (conteúdo evergreen educativo); "frases" deve ter 8 itens curtos e inspiradores ligados ao nicho; "roteiros" deve ter 8 itens, cada um com "categoria" igual a uma das 5 categorias, "estrutura" descrevendo o formato em 1 frase, e "exemplo" sendo uma legenda pronta de 2-4 frases; "hoje" deve ter 4 posts prontos com legenda completa pronta pra colar; "regras.fazer" e "regras.evitar" devem ter 5 itens cada, curtos e específicos do nicho. O negócio se chama "${brand}".`;
+
+  async function callOnce(){
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model:"claude-sonnet-4-6",
+        max_tokens: 8000,
+        system: sys,
+        messages:[{role:"user", content:`Gere o pacote de conteúdo em JSON para o nicho "${niche}". Responda só com o objeto JSON, começando em { e terminando em }.`}]
+      })
+    });
+    if(!resp.ok){
+      const errText = await resp.text().catch(()=> '');
+      throw new Error(`Falha na API (status ${resp.status}): ${errText.slice(0,200)}`);
+    }
+    const data = await resp.json();
+    if(data.error){ throw new Error('Erro da API: '+(data.error.message||JSON.stringify(data.error))); }
+    const textBlocks = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+    if(!textBlocks.trim()){ throw new Error('Resposta vazia da API.'); }
+    let clean = textBlocks.replace(/```json|```/g,"").trim();
+    // extract from first { to last } in case of stray text or truncation markers
+    const first = clean.indexOf('{'); const last = clean.lastIndexOf('}');
+    if(first === -1 || last === -1 || last <= first){
+      throw new Error('Não veio JSON válido na resposta: '+clean.slice(0,200));
+    }
+    clean = clean.slice(first, last+1);
+    try{
+      return JSON.parse(clean);
+    }catch(parseErr){
+      throw new Error('JSON incompleto/malformado (provavelmente cortado): '+parseErr.message);
+    }
+  }
+  try{
+    return await callOnce();
+  }catch(e1){
+    console.warn('1ª tentativa falhou:', e1.message);
+    document.getElementById('setupStatus').textContent = 'Primeira tentativa falhou, tentando de novo...';
+    return await callOnce(); // one retry before giving up to caller
+  }
+}
+
+function fallbackContent(niche, brand){
+  const cats = ["Educativo","Bastidores","Prova social","Promocional","Engajamento"];
+  return {
+    categorias: cats,
+    proporcao: [{categoria:"Educativo",pct:30},{categoria:"Bastidores",pct:20},{categoria:"Prova social",pct:25},{categoria:"Promocional",pct:15},{categoria:"Engajamento",pct:10}],
+    tendencias: Array.from({length:5},(_,i)=>({titulo:`Tendência ${i+1} em ${niche}`,resumo:"Descreva aqui a novidade do seu nicho.",legenda:`Novidade em ${niche}! Vem ver como isso pode te ajudar. Salva esse post pra não esquecer. ✨`})),
+    guia: Array.from({length:5},(_,i)=>({titulo:`Guia ${i+1}`,resumo:"Conteúdo educativo evergreen.",legenda:`Tudo que você precisa saber sobre ${niche}, direto ao ponto. Salva pra consultar depois!`})),
+    frases: Array.from({length:8},(_,i)=>({texto:`Frase inspiradora número ${i+1} sobre ${niche}.`,autor:brand})),
+    roteiros: Array.from({length:8},(_,i)=>({categoria:cats[i%5],titulo:`Roteiro ${i+1}`,estrutura:"Gancho + desenvolvimento + CTA.",exemplo:`Um exemplo de legenda pronta para ${niche}. Comenta aqui o que você achou!`})),
+    hoje: Array.from({length:4},(_,i)=>({titulo:`Post ${i+1} de hoje`,legenda:`Legenda pronta ${i+1} para ${niche}. Bora postar hoje!`,categoria:cats[i%5]})),
+    regras: {fazer:["Responda comentários rápido","Use gancho na 1ª linha","Mostre bastidores","Peça pra salvar o post","Seja consistente"], evitar:["Postar sem legenda","Vender em todo post","Sumir depois de postar","Hashtags genéricas","Textão sem gancho"]}
+  };
+}
+
+/* ================= LAUNCH APP ================= */
+function launchApp(){
+  applyPalette(STATE.palette);
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('brandName').textContent = STATE.brand;
+  document.getElementById('brandSub').textContent = 'Instagram · '+STATE.niche;
+  document.getElementById('logoInit').textContent = (STATE.brand.trim()[0]||'S').toUpperCase();
+  document.getElementById('footerText').textContent = `Studio de Conteúdo · ${STATE.brand} · Instagram · 100% local, sem coleta de dados.`;
+  renderAll();
+}
+document.getElementById('changeNicheBtn').onclick = ()=>{
+  document.getElementById('app').style.display='none';
+  document.getElementById('setup').style.display='flex';
+  document.getElementById('setupStatus').textContent='';
+  document.getElementById('setupBtn').disabled=false;
+  document.getElementById('setupBtn').textContent='Gerar meu Studio ✨';
+};
+
+function applyPalette(p){
+  const r = document.documentElement.style;
+  r.setProperty('--bg', p.bg);
+  r.setProperty('--bg2', shade(p.bg, 6));
+  r.setProperty('--card', p.card);
+  r.setProperty('--accent', p.accent);
+  r.setProperty('--text', p.text);
+  r.setProperty('--line', shade(p.card, 10));
+}
+function shade(hex, amt){
+  const c = hex.replace('#','');
+  const num = parseInt(c,16);
+  let r=(num>>16)+amt, g=((num>>8)&0xff)+amt, b=(num&0xff)+amt;
+  r=Math.min(255,Math.max(0,r)); g=Math.min(255,Math.max(0,g)); b=Math.min(255,Math.max(0,b));
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+/* ================= TABS ================= */
+document.getElementById('tabs').addEventListener('click', e=>{
+  const btn = e.target.closest('.tab'); if(!btn) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(btn.dataset.tab).classList.add('active');
+});
+function goTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===id));
+}
+
+/* ================= RENDER ALL ================= */
+function renderAll(){
+  const c = STATE.content;
+  renderHoje(c); renderRadar(c); renderGuia(c); renderFrases(c);
+  renderRoteiros(c); renderGeradorCats(c); renderEstrategia(c); renderCalendar(c);
+  renderArtTemplates(); renderArtFormats(); renderArtPaletteView();
+}
+
+function postCardHTML(cat, titulo, legenda, extra){
+  return `<div class="post-card">
+    <span class="cat">${cat||''}</span>
+    <h4>${titulo}</h4>
+    <p>${legenda}</p>
+    <div class="row">
+      <button class="mini-btn primary" data-act="art" data-titulo="${escAttr(titulo)}" data-legenda="${escAttr(legenda)}">🎨 Criar arte</button>
+      <button class="mini-btn" data-act="copy" data-legenda="${escAttr(legenda)}">📋 Copiar legenda</button>
+    </div>
+  </div>`;
+}
+function escAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+
+function wirePostButtons(container){
+  container.querySelectorAll('[data-act="copy"]').forEach(b=>{
+    b.onclick = ()=>{ copyText(b.dataset.legenda); };
+  });
+  container.querySelectorAll('[data-act="art"]').forEach(b=>{
+    b.onclick = ()=>{
+      document.getElementById('artTitle').value = b.dataset.titulo;
+      document.getElementById('artSub').value = b.dataset.legenda.slice(0,80);
+      goTab('arte'); renderArt();
+    };
+  });
+}
+
+function renderHoje(c){
+  const el = document.getElementById('hojeList');
+  el.innerHTML = c.hoje.map(p=>postCardHTML(p.categoria,p.titulo,p.legenda)).join('');
+  wirePostButtons(el);
+}
+function renderRadar(c){
+  const el = document.getElementById('radarList');
+  el.innerHTML = c.tendencias.map(p=>postCardHTML('Tendência',p.titulo,p.legenda||p.resumo)).join('');
+  wirePostButtons(el);
+}
+function renderGuia(c){
+  const el = document.getElementById('produtosList');
+  el.innerHTML = c.guia.map(p=>postCardHTML('Guia',p.titulo,p.legenda||p.resumo)).join('');
+  wirePostButtons(el);
+}
+function renderFrases(c){
+  const el = document.getElementById('motivaList');
+  el.innerHTML = c.frases.map(f=>`<div class="post-card">
+    <p style="font-size:1.05rem;font-style:italic;color:var(--text)">"${f.texto}"</p>
+    <p style="margin-bottom:12px">— ${f.autor||STATE.brand}</p>
+    <div class="row">
+      <button class="mini-btn primary" data-act="art" data-titulo="${escAttr(f.texto)}" data-legenda="${escAttr(f.autor||'')}">🎨 Criar arte</button>
+      <button class="mini-btn" data-act="copy" data-legenda="${escAttr(f.texto)}">📋 Copiar</button>
+    </div>
+  </div>`).join('');
+  wirePostButtons(el);
+}
+function renderRoteiros(c){
+  const filtEl = document.getElementById('catFilters');
+  filtEl.innerHTML = `<button class="chip active" data-cat="">Todas</button>` +
+    c.categorias.map(cat=>`<button class="chip" data-cat="${cat}">${cat}</button>`).join('');
+  filtEl.querySelectorAll('.chip').forEach(ch=>{
+    ch.onclick = ()=>{
+      filtEl.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+      ch.classList.add('active');
+      drawRoteirosGrid(c, ch.dataset.cat);
+    };
+  });
+  drawRoteirosGrid(c, "");
+}
+function drawRoteirosGrid(c, cat){
+  const grid = document.getElementById('roteirosGrid');
+  const list = cat ? c.roteiros.filter(r=>r.categoria===cat) : c.roteiros;
+  grid.innerHTML = list.map(r=>`<div class="post-card">
+    <span class="cat">${r.categoria}</span>
+    <h4>${r.titulo}</h4>
+    <p><strong>Estrutura:</strong> ${r.estrutura}</p>
+    <p>${r.exemplo}</p>
+    <div class="row">
+      <button class="mini-btn primary" data-act="use" data-titulo="${escAttr(r.titulo)}" data-legenda="${escAttr(r.exemplo)}">✍️ Usar no gerador</button>
+    </div>
+  </div>`).join('');
+  grid.querySelectorAll('[data-act="use"]').forEach(b=>{
+    b.onclick = ()=>{
+      document.getElementById('genOutput').value = b.dataset.legenda;
+      updateCharCount();
+      goTab('gerador');
+    };
+  });
+}
+
+function renderGeradorCats(c){
+  const wrap = document.getElementById('genCats');
+  wrap.innerHTML = c.categorias.map((cat,i)=>`<button class="chip${i===0?' active':''}" data-cat="${cat}">${cat}</button>`).join('');
+  wrap.querySelectorAll('.chip').forEach(ch=>{
+    ch.onclick = ()=>{
+      wrap.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+      ch.classList.add('active');
+      STATE.genFilterCat = ch.dataset.cat;
+      populateRoteiroSelect(c);
+    };
+  });
+  STATE.genFilterCat = c.categorias[0];
+  populateRoteiroSelect(c);
+}
+function populateRoteiroSelect(c){
+  const sel = document.getElementById('genRoteiro');
+  const list = c.roteiros.filter(r=>r.categoria===STATE.genFilterCat);
+  sel.innerHTML = (list.length?list:c.roteiros).map((r,i)=>`<option value="${i}">${r.titulo}</option>`).join('');
+  sel.onchange = ()=>{ updateRoteiroHint(list.length?list:c.roteiros); };
+  updateRoteiroHint(list.length?list:c.roteiros);
+}
+function updateRoteiroHint(list){
+  const sel = document.getElementById('genRoteiro');
+  const r = list[+sel.value] || list[0];
+  document.getElementById('roteiroHint').textContent = r ? ('Estrutura: '+r.estrutura) : '';
+}
+document.getElementById('genBtn').onclick = ()=>{
+  const c = STATE.content;
+  const list = c.roteiros.filter(r=>r.categoria===STATE.genFilterCat);
+  const sel = document.getElementById('genRoteiro');
+  const r = (list.length?list:c.roteiros)[+sel.value] || c.roteiros[0];
+  document.getElementById('genOutput').value = r.exemplo;
+  updateCharCount();
+};
+document.getElementById('genOutput').addEventListener('input', updateCharCount);
+function updateCharCount(){
+  document.getElementById('charCount').textContent = document.getElementById('genOutput').value.length+' caract.';
+}
+document.getElementById('copyBtn').onclick = ()=> copyText(document.getElementById('genOutput').value);
+document.getElementById('toArtBtn').onclick = ()=>{
+  const txt = document.getElementById('genOutput').value;
+  document.getElementById('artTitle').value = txt.split('\n')[0].slice(0,60);
+  document.getElementById('artSub').value = txt.slice(0,90);
+  goTab('arte'); renderArt();
+};
+
+function renderEstrategia(c){
+  document.getElementById('flow').innerHTML = ['Hoje','Tendências','Guia','Frases','Gerador','Arte','Postar']
+    .map(s=>`<span>${s}</span>`).join(' → '.length?'':'');
+  document.getElementById('flow').innerHTML = ['Hoje','Tendências','Guia','Frases','Gerador','Arte','Postar']
+    .map(s=>`<span>${s}</span>`).join('');
+  document.getElementById('propBars').innerHTML = c.proporcao.map(p=>`
+    <div class="bar-row"><span class="lab">${p.categoria}</span>
+    <div class="bar-track"><div class="bar-fill" style="width:${p.pct}%"></div></div>
+    <span class="bar-pct">${p.pct}%</span></div>`).join('');
+  document.getElementById('regrasFazer').innerHTML = c.regras.fazer.map(x=>`<li>${x}</li>`).join('');
+  document.getElementById('regrasEvitar').innerHTML = c.regras.evitar.map(x=>`<li>${x}</li>`).join('');
+}
+
+function renderCalendar(c){
+  const el = document.getElementById('calendar');
+  const pool = [...c.hoje, ...c.tendencias.map(t=>({titulo:t.titulo,legenda:t.legenda,categoria:'Tendência'})),
+    ...c.guia.map(g=>({titulo:g.titulo,legenda:g.legenda,categoria:'Guia'})),
+    ...c.roteiros.map(r=>({titulo:r.titulo,legenda:r.exemplo,categoria:r.categoria}))];
+  const postDays = [0,2,4,5,6]; // seg, qua, sex, sab, dom
+  const dayNames = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  let html=''; let idx=0;
+  for(let w=0; w<4; w++){
+    html += `<div class="cal-week"><h4>Semana ${w+1}</h4><div class="cal-grid">`;
+    for(let d=0; d<7; d++){
+      if(postDays.includes(d)){
+        const post = pool[idx % pool.length]; idx++;
+        html += `<div class="cal-day" data-titulo="${escAttr(post.titulo)}" data-legenda="${escAttr(post.legenda)}">
+          <span class="dname">${dayNames[d]}</span><span class="cat">${post.categoria||''}</span>
+          <span class="ttl">${post.titulo}</span></div>`;
+      } else {
+        html += `<div class="cal-day empty"><span class="dname">${dayNames[d]}</span></div>`;
+      }
+    }
+    html += `</div></div>`;
+  }
+  el.innerHTML = html;
+  el.querySelectorAll('.cal-day:not(.empty)').forEach(d=>{
+    d.onclick = ()=>{
+      document.getElementById('genOutput').value = d.dataset.legenda;
+      updateCharCount();
+      goTab('gerador');
+    };
+  });
+}
+
+/* ================= ARTE (canvas) ================= */
+const ART_TEMPLATES = [
+  {id:'tag-titulo', label:'Tag + Título'},
+  {id:'numero', label:'Número'},
+  {id:'dados', label:'Dados'},
+  {id:'frase', label:'Frase'},
+  {id:'foto', label:'Foto + texto'},
+  {id:'tweet', label:'Estilo tweet'},
+];
+const ART_FORMATS = [
+  {id:'4:5', label:'Feed 4:5', w:1080, h:1350},
+  {id:'1:1', label:'Quadrado 1:1', w:1080, h:1080},
+  {id:'9:16', label:'Story 9:16', w:1080, h:1920},
+];
+function renderArtTemplates(){
+  const wrap = document.getElementById('artTemplates');
+  wrap.innerHTML = ART_TEMPLATES.map((t,i)=>`<button class="chip${i===0?' active':''}" data-t="${t.id}">${t.label}</button>`).join('');
+  wrap.querySelectorAll('.chip').forEach(ch=>{
+    ch.onclick=()=>{ wrap.querySelectorAll('.chip').forEach(x=>x.classList.remove('active')); ch.classList.add('active');
+      STATE.artTemplate = ch.dataset.t; updateCondFields(); renderArt(); };
+  });
+  updateCondFields();
+}
+function renderArtFormats(){
+  const wrap = document.getElementById('artFormats');
+  wrap.innerHTML = ART_FORMATS.map((f,i)=>`<button class="chip${i===0?' active':''}" data-f="${f.id}">${f.label}</button>`).join('');
+  wrap.querySelectorAll('.chip').forEach(ch=>{
+    ch.onclick=()=>{ wrap.querySelectorAll('.chip').forEach(x=>x.classList.remove('active')); ch.classList.add('active');
+      STATE.artFormat = ch.dataset.f; renderArt(); };
+  });
+}
+function renderArtPaletteView(){
+  const el = document.getElementById('artPaletteView');
+  const p = STATE.palette;
+  el.innerHTML = [p.bg,p.card,p.accent,p.text].map(c=>`<i style="background:${c}"></i>`).join('');
+}
+function updateCondFields(){
+  ['numeroFields','dadosFields','fraseFields','fotoFields','tweetFields'].forEach(id=>document.getElementById(id).classList.remove('show'));
+  const map = {numero:'numeroFields', dados:'dadosFields', frase:'fraseFields', foto:'fotoFields', tweet:'tweetFields'};
+  const id = map[STATE.artTemplate];
+  if(id) document.getElementById(id).classList.add('show');
+}
+document.getElementById('artFoto').addEventListener('change', e=>loadImgTo(e, 'artFotoImg'));
+document.getElementById('artAvatar').addEventListener('change', e=>loadImgTo(e, 'artAvatarImg'));
+function loadImgTo(e, key){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{ const img = new Image(); img.onload=()=>{ STATE[key]=img; renderArt(); }; img.src=reader.result; };
+  reader.readAsDataURL(file);
+}
+document.getElementById('artRender').onclick = renderArt;
+document.getElementById('artDownload').onclick = ()=>{
+  const canvas = document.getElementById('artCanvas');
+  const link = document.createElement('a');
+  link.download = (STATE.brand||'post').toLowerCase().replace(/\s+/g,'-')+'.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+};
+
+function renderArt(){
+  const fmt = ART_FORMATS.find(f=>f.id===STATE.artFormat) || ART_FORMATS[0];
+  const canvas = document.getElementById('artCanvas');
+  canvas.width = fmt.w; canvas.height = fmt.h;
+  const ctx = canvas.getContext('2d');
+  const p = STATE.palette;
+  ctx.fillStyle = p.bg; ctx.fillRect(0,0,fmt.w,fmt.h);
+
+  const tag = document.getElementById('artTag').value || '';
+  const title = document.getElementById('artTitle').value || 'Seu título aqui';
+  const sub = document.getElementById('artSub').value || '';
+
+  const pad = fmt.w*0.08;
+
+  function wrapText(text, x, y, maxWidth, lineHeight, font){
+    ctx.font = font;
+    const words = text.split(' '); let line=''; const lines=[];
+    for(const w of words){
+      const test = line+w+' ';
+      if(ctx.measureText(test).width>maxWidth && line){ lines.push(line); line=w+' '; }
+      else line=test;
+    }
+    lines.push(line);
+    lines.forEach((l,i)=>ctx.fillText(l.trim(), x, y+i*lineHeight));
+    return lines.length*lineHeight;
+  }
+
+  if(STATE.artTemplate==='tag-titulo'){
+    if(tag){ ctx.fillStyle=p.accent; roundRect(ctx,pad,pad,ctx.measureText(tag).width+40,54,27); ctx.fillStyle=p.bg;
+      ctx.font='600 26px sans-serif'; ctx.fillText(tag, pad+20, pad+36); }
+    ctx.fillStyle = p.text; ctx.textBaseline='alphabetic';
+    const titleY = fmt.h*0.55;
+    ctx.font='600 68px Georgia, serif';
+    wrapText(title, pad, titleY, fmt.w-pad*2, 78, "600 68px Georgia, serif");
+    if(sub){ ctx.fillStyle=p.accent; wrapText(sub, pad, titleY+150, fmt.w-pad*2, 40, "400 32px sans-serif"); }
+    ctx.fillStyle=p.accent; ctx.font='600 30px sans-serif'; ctx.fillText((STATE.brand||'').toUpperCase(), pad, fmt.h-pad);
+  }
+  else if(STATE.artTemplate==='numero'){
+    const num = document.getElementById('artNum').value || '1';
+    ctx.fillStyle=p.accent; ctx.font='700 340px Georgia, serif'; ctx.fillText(num, pad, fmt.h*0.5);
+    ctx.fillStyle=p.text; ctx.font='600 52px Georgia, serif';
+    wrapText(title, pad, fmt.h*0.65, fmt.w-pad*2, 62, "600 52px Georgia, serif");
+    if(sub){ ctx.fillStyle=p.accent; wrapText(sub, pad, fmt.h*0.78, fmt.w-pad*2, 36, "400 30px sans-serif"); }
+  }
+  else if(STATE.artTemplate==='dados'){
+    ctx.fillStyle=p.text; ctx.font='600 56px Georgia, serif';
+    wrapText(title, pad, pad+80, fmt.w-pad*2, 64, "600 56px Georgia, serif");
+    const rows = [document.getElementById('artData1').value, document.getElementById('artData2').value];
+    let y = fmt.h*0.5;
+    rows.forEach(r=>{
+      if(!r) return; const [lab,val] = r.split('|').map(s=>(s||'').trim());
+      ctx.fillStyle=p.accent; ctx.font='500 30px sans-serif'; ctx.fillText(lab||'', pad, y);
+      ctx.fillStyle=p.text; ctx.font='600 46px Georgia, serif'; ctx.fillText(val||'', pad, y+50);
+      ctx.strokeStyle=shade(p.card,20); ctx.beginPath(); ctx.moveTo(pad,y+80); ctx.lineTo(fmt.w-pad,y+80); ctx.stroke();
+      y += 140;
+    });
+  }
+  else if(STATE.artTemplate==='frase'){
+    ctx.fillStyle=p.accent; ctx.font='700 120px Georgia, serif'; ctx.fillText('"', pad-10, fmt.h*0.32);
+    ctx.fillStyle=p.text; ctx.font='italic 500 54px Georgia, serif';
+    const h = wrapText(title, pad, fmt.h*0.42, fmt.w-pad*2, 66, "italic 500 54px Georgia, serif");
+    ctx.fillStyle=p.accent; ctx.font='500 32px sans-serif';
+    ctx.fillText('— '+(sub||STATE.brand), pad, fmt.h*0.42+h+40);
+  }
+  else if(STATE.artTemplate==='foto'){
+    if(STATE.artFotoImg){ drawImgCover(ctx, STATE.artFotoImg, 0,0,fmt.w,fmt.h); }
+    else { ctx.fillStyle=shade(p.bg,15); ctx.fillRect(0,0,fmt.w,fmt.h); ctx.fillStyle=p.text; ctx.font='28px sans-serif';
+      ctx.fillText('Envie uma foto ao lado ⟵', pad, fmt.h/2); }
+    const grad = ctx.createLinearGradient(0,fmt.h*0.5,0,fmt.h);
+    grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,'rgba(0,0,0,.75)');
+    ctx.fillStyle=grad; ctx.fillRect(0,fmt.h*0.5,fmt.w,fmt.h*0.5);
+    if(tag){ ctx.fillStyle=p.accent; roundRect(ctx,pad,pad,ctx.measureText(tag).width+40,54,27); ctx.fillStyle=p.bg;
+      ctx.font='600 26px sans-serif'; ctx.fillText(tag,pad+20,pad+36); }
+    ctx.fillStyle='#fff'; ctx.font='600 54px Georgia, serif';
+    wrapText(title, pad, fmt.h*0.82, fmt.w-pad*2, 62, "600 54px Georgia, serif");
+  }
+  else if(STATE.artTemplate==='tweet'){
+    const cardX=pad, cardY=fmt.h*0.28, cardW=fmt.w-pad*2, cardH=fmt.h*0.4;
+    ctx.fillStyle=p.card; roundRect(ctx,cardX,cardY,cardW,cardH,28);
+    const av = STATE.artAvatarImg;
+    ctx.save(); ctx.beginPath(); ctx.arc(cardX+70,cardY+70,40,0,Math.PI*2); ctx.clip();
+    if(av) drawImgCover(ctx, av, cardX+30, cardY+30, 80,80); else { ctx.fillStyle=p.accent; ctx.fillRect(cardX+30,cardY+30,80,80); }
+    ctx.restore();
+    ctx.fillStyle=p.text; ctx.font='600 30px sans-serif'; ctx.fillText(STATE.brand, cardX+130, cardY+60);
+    ctx.fillStyle=shade(p.text,-60); ctx.font='26px sans-serif';
+    ctx.fillText(document.getElementById('artHandle').value || '@seu_negocio', cardX+130, cardY+96);
+    ctx.fillStyle=p.text; ctx.font='38px Georgia, serif';
+    wrapText(title, cardX+40, cardY+170, cardW-80, 48, "38px Georgia, serif");
+  }
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); ctx.fill();
+}
+function drawImgCover(ctx,img,x,y,w,h){
+  const ir = img.width/img.height, tr = w/h; let sx,sy,sw,sh;
+  if(ir>tr){ sh=img.height; sw=sh*tr; sx=(img.width-sw)/2; sy=0; } else { sw=img.width; sh=sw/tr; sx=0; sy=(img.height-sh)/2; }
+  ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
+}
+['artTag','artTitle','artSub','artNum','artData1','artData2','artAutor','artHandle'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=>renderArt());
+});
+
+/* ================= UTIL ================= */
+function copyText(t){
+  navigator.clipboard.writeText(t).then(()=>toast('Copiado! 📋')).catch(()=>toast('Não foi possível copiar'));
+}
+function toast(msg){
+  const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 1800);
+}
+</script>
+</body>
+</html>
